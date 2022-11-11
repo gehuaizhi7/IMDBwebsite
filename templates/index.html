@@ -1,0 +1,29 @@
+<html>
+  <style>
+    body{ 
+      font-size: 15pt;
+      font-family: arial;
+    }
+  </style>
+
+
+<body>
+  <h1>IMDB Movie List</h1>
+  <!-- <div>{{data}}</div> -->
+
+  <div>
+    {% for n in data %}
+    <div><a href="/movie/{{n[0]}}">{{n[1]}}</a></div>
+    {% endfor %}
+  </div>
+
+<p><a href="/newmovie">Add a new movie</a></p>
+
+<!-- <form method="POST" action="/add">
+<p>Name of new computer scientist: <input type="text" name="name"> <input type="submit" value="Add"></p>
+</form> -->
+
+</body>
+
+
+</html>
