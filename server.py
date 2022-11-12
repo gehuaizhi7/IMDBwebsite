@@ -19,6 +19,8 @@ import os
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response
+from datetime import date
+
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
@@ -177,27 +179,233 @@ def get_movie(movieid):
   movie = []
   for i in cursor:
     movie.append(i)
-  # names = []
-  # for result in cursor:
-  #   names.append(result['title'])  # can also be accessed using result[0]
   cursor.close()
-  context = dict(data = movie[0])
+
+  cmd = 'SELECT * FROM produce JOIN production_company ON produce.company_id=production_company.company_id WHERE movie_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = movieid)
+  company = []
+  for i in cursor:
+    company.append(i)
+  cursor.close()
+
+  cmd = 'SELECT * FROM genre JOIN ispartof ON genre.genre_id=ispartof.genre_id WHERE movie_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = movieid)
+  genre = []
+  for i in cursor:
+    genre.append(i)
+  cursor.close()
+
+  cmd = 'SELECT * FROM personnel JOIN direct ON personnel.person_id=direct.person_id WHERE movie_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = movieid)
+  director = []
+  for i in cursor:
+    director.append(i)
+  cursor.close()
+
+  cmd = 'SELECT * FROM personnel JOIN actor ON personnel.person_id=actor.person_id JOIN role ON personnel.person_id=role.person_id WHERE movie_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = movieid)
+  actor = []
+  for i in cursor:
+    actor.append(i)
+  cursor.close()
+
+  cmd = 'SELECT * FROM feedback WHERE movie_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = movieid)
+  feedback = []
+  for i in cursor:
+    feedback.append(i)
+  cursor.close()
+
+  context = dict(movie = movie[0], feedback = feedback, company = company[0], genre = genre[0], director = director[0], actor = actor)
   return render_template("moviedetails.html", **context)
 
-@app.route('/newmovie')
-def another():
-  return render_template("newmovie.html")
+# @app.route('/newmovie')
+# def another():
+#   return render_template("newmovie.html")
 
 
 # Example of adding new data to the database
-@app.route('/add', methods=['POST'])
-def add():
-  name = request.form['name']
-  print (name)
-  cmd = 'INSERT INTO test(name) VALUES (:name1), (:name2)'
-  g.conn.execute(text(cmd), name1 = name, name2 = name)
+@app.route('/movie/<movieid>/addfeedback', methods=['POST'])
+def addfeedback(movieid):
+  cmd = 'SELECT COUNT(*) FROM feedback'
+  cursor = g.conn.execute(text(cmd))
+  count = []
+  for i in cursor:
+    count.append(i)
+  cursor.close()
+  count = count[0][0]
+
+  cmd = 'SELECT COUNT(*) FROM userimdb'
+  cursor = g.conn.execute(text(cmd))
+  usercount = []
+  for i in cursor:
+    usercount.append(i)
+  cursor.close()
+  usercount = usercount[0][0]
+
+  content = request.form['feedback']
+  userid = request.form['uid']
+  rating = request.form['rating']
+  password = request.form['password']
+  if not userid.isnumeric() or not rating.isnumeric(): return redirect('/error')
+  if int(userid)<=0 or int(userid)>usercount: return redirect('/error')
+  if int(rating)<0 or int(rating)>10: return redirect('/error')
+
+  cmd = 'SELECT * FROM userimdb WHERE uid=(:id)'
+  cursor = g.conn.execute(text(cmd),id = userid)
+  user = []
+  for i in cursor:
+    user.append(i)
+  cursor.close()
+
+  if user[0][2]!=password: return redirect('/error')
+
+  cmd = 'INSERT INTO feedback VALUES ((:feedbackid),(:movieid),(:uid),(:content),(:rating),(:date))'
+  g.conn.execute(text(cmd), feedbackid = count+1, movieid = movieid, uid = userid, content = content, rating = rating, date = date.today())
+  return redirect('/movie/'+movieid)
+
+
+@app.route('/feedback/<feedbackid>')
+def get_feedback(feedbackid):
+  cmd = 'SELECT * FROM feedback WHERE feedback_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = feedbackid)
+  feedback = []
+  for i in cursor:
+    feedback.append(i)
+  cursor.close()
+
+  cmd = 'SELECT * FROM comment WHERE feedback_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = feedbackid)
+  comment = []
+  for i in cursor:
+    comment.append(i)
+  cursor.close()
+
+  context = dict(feedback = feedback[0], comment = comment)
+  return render_template("feedbackdetails.html", **context)
+
+@app.route('/feedback/<feedbackid>/addcomment', methods=['POST'])
+def addcomment(feedbackid):
+  cmd = 'SELECT COUNT(*) FROM comment'
+  cursor = g.conn.execute(text(cmd))
+  count = []
+  for i in cursor:
+    count.append(i)
+  cursor.close()
+  count = count[0][0]
+
+  cmd = 'SELECT COUNT(*) FROM userimdb'
+  cursor = g.conn.execute(text(cmd))
+  usercount = []
+  for i in cursor:
+    usercount.append(i)
+  cursor.close()
+  usercount = usercount[0][0]
+
+  content = request.form['comment']
+  userid = request.form['uid']
+  password = request.form['password']
+  if not userid.isnumeric(): return redirect('/error')
+  if int(userid)<=0 or int(userid)>usercount: return redirect('/error')
+
+  cmd = 'SELECT * FROM userimdb WHERE uid=(:id)'
+  cursor = g.conn.execute(text(cmd),id = userid)
+  user = []
+  for i in cursor:
+    user.append(i)
+  cursor.close()
+
+  if user[0][2]!=password: return redirect('/error')
+
+  cmd = 'INSERT INTO comment VALUES ((:commentid),(:feedbackid),(:uid),(:content),(:date))'
+  g.conn.execute(text(cmd), commentid = count+1, feedbackid = feedbackid, uid = userid, content = content, date = date.today())
+  return redirect('/feedback/'+feedbackid)
+
+@app.route('/user/<uid>')
+def get_user(uid):
+  cmd = 'SELECT * FROM userimdb WHERE uid=(:id)'
+  cursor = g.conn.execute(text(cmd),id = uid)
+  userimdb = []
+  for i in cursor:
+    userimdb.append(i)
+  cursor.close()
+
+  context = dict(user = userimdb[0])
+  return render_template("userdetails.html", **context)
+
+@app.route('/company/<companyid>')
+def get_company(companyid):
+  cmd = 'SELECT * FROM production_company WHERE company_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = companyid)
+  company = []
+  for i in cursor:
+    company.append(i)
+  cursor.close()
+
+  context = dict(company = company[0])
+  return render_template("companydetails.html", **context)
+
+@app.route('/genre/<genreid>')
+def get_genre(genreid):
+  cmd = 'SELECT * FROM genre WHERE genre_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = genreid)
+  genre = []
+  for i in cursor:
+    genre.append(i)
+  cursor.close()
+
+  context = dict(genre = genre[0])
+  return render_template("genredetails.html", **context)
+
+@app.route('/person/<personid>')
+def get_person(personid):
+  cmd = 'SELECT * FROM personnel WHERE person_id=(:id)'
+  cursor = g.conn.execute(text(cmd),id = personid)
+  person = []
+  for i in cursor:
+    person.append(i)
+  cursor.close()
+
+  context = dict(person = person[0])
+  return render_template("persondetails.html", **context)
+
+@app.route('/register')
+def register():
+  cmd = 'SELECT COUNT(*) FROM userimdb'
+  cursor = g.conn.execute(text(cmd))
+  count = []
+  for i in cursor:
+    count.append(i)
+  cursor.close()
+  count = count[0][0]
+  
+  context = dict(uid = count+1)
+  return render_template("register.html", **context)
+
+
+@app.route('/register', methods=['POST'])
+def register_post():
+  cmd = 'SELECT COUNT(*) FROM userimdb'
+  cursor = g.conn.execute(text(cmd))
+  count = []
+  for i in cursor:
+    count.append(i)
+  cursor.close()
+  count = count[0][0]
+
+  username = request.form['username']
+  password = request.form['password']
+  cmd = 'INSERT INTO userimdb VALUES ((:uid),(:username),(:password))'
+  g.conn.execute(text(cmd), uid = count+1, username = username, password = password)
   return redirect('/')
 
+@app.route('/error')
+def error():
+  return render_template("error.html")
+
+# @app.route('/newmovie')
+# def another():
+#   return render_template("newmovie.html")
 
 # @app.route('/login')
 # def login():

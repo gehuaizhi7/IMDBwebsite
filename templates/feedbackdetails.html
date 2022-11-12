@@ -1,0 +1,36 @@
+<html>
+  <style>
+    body{ 
+      font-size: 15pt;
+      font-family: arial;
+    }
+  </style>
+
+
+<body>
+  <h2>{{feedback[3]}}</h2>
+
+  <div>
+    <div>by <a href="/user/{{feedback[2]}}">user {{feedback[2]}}</a> </div>
+    <div>date: {{feedback[5]}} </div>
+  </div>
+
+  <div>
+    <h2>Comments</h2>
+    {% for n in comment %}
+    <div>{{n[3]}}</div><div>by <a href="/user/{{n[2]}}">user {{n[2]}}</a></div><div>date: {{n[4]}}</div>
+    {% endfor %}
+  </div>
+
+  <form method="POST" action="/feedback/{{feedback[0]}}/addcomment">
+    <p>Your Review: <input type="text" name="comment"> </p>
+    <div>Your UID: <input type="text" name="uid"></div>
+    <div>Your password: <input type="text" name="password"><input type="submit" value="Submit"></div>
+</form>
+
+  <p><a href="/movie/{{feedback[1]}}">Go back to movie</a></p>
+
+</body>
+
+
+</html>

@@ -8,14 +8,38 @@
 
 
 <body>
-  <h1>{{data[1]}}</h1>
-  <!-- <div>{{data}}</div> -->
+  <h1>{{movie[1]}}</h1>
+  <div>{{company}}</div>
 
   <div>
-    <div>Movie Length: {{data[2]}} min</div>
-    <div>Release Date: {{data[3]}}</div>
-    <div>Snopsis: {{data[4]}}</div>
+    <div>Production Company: <a href="/company/{{company[1]}}">{{company[3]}}</a></div>
+    <div>Genre: <a href="/genre/{{genre[0]}}">{{genre[1]}}</a></div>
+    <div>Actor: 
+      {% for n in actor %}
+      <a href="/person/{{n[0]}}">{{n[1]}} {{n[2]}}</a> plays {{n[6]}}
+      {% endfor %}
+    </div>
+    <div>Director: <a href="/person/{{director[0]}}">{{director[1]}} {{director[2]}}</a></div>
+    <div>Movie Length: {{movie[2]}} min</div>
+    <div>Release Date: {{movie[3]}}</div>
+    <div>Snopsis: {{movie[4]}}</div>
   </div>
+
+  <div>
+    <h2>Reviews</h2>
+    {% for n in feedback %}
+    <h3>Rating: {{n[4]}}</h3>
+    <div>{{n[3]}}<a href="/feedback/{{n[0]}}">details</a></div>
+    <div>by <a href="/user/{{n[2]}}">user {{n[2]}}</a></div>
+    {% endfor %}
+  </div>
+
+  <form method="POST" action="/movie/{{movie[0]}}/addfeedback">
+    <div>Your Review: <input type="text" name="feedback"> </div>
+    <div>Your Rating: <input type="text" name="rating"> </div>
+    <div>Your UID: <input type="text" name="uid"></div>
+    <div>Your password: <input type="text" name="password"><input type="submit" value="Submit"></div>
+</form>
 
   <p><a href="/">Go back to index</a></p>
 
