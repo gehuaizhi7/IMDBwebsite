@@ -29,7 +29,7 @@
     <h2>Reviews</h2>
     {% for n in feedback %}
     <h3>Rating: {{n[4]}}</h3>
-    <div>{{n[3]}}<a href="/feedback/{{n[0]}}">details</a></div>
+    <div>{{n[3]}} <a href="/feedback/{{n[0]}}">DETAILS</a></div>
     <div>by <a href="/user/{{n[2]}}">user {{n[2]}}</a></div>
     {% endfor %}
   </div>
