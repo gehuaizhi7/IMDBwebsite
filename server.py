@@ -125,7 +125,7 @@ def index():
   cursor = g.conn.execute("SELECT * FROM movie")
   names = []
   for result in cursor:
-    names.append((result['movie_id'],result['title']))  # can also be accessed using result[0]
+    names.append((result['movie_id'],result['title'],result['synopsis']))  # can also be accessed using result[0]
   cursor.close()
 
   #
